@@ -1,0 +1,445 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fix Record Attendance</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
+</head>
+<body>
+    <div class="container mt-5">
+        <div class="card">
+            <div class="card-header bg-success text-white">
+                <h2><i class="bi bi-calendar-check me-2"></i>Fix Record Attendance</h2>
+            </div>
+            <div class="card-body">
+                <div id="test-results"></div>
+                
+                <h5>Test Record Attendance Function</h5>
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="d-grid gap-2">
+                            <button class="btn btn-primary" onclick="testAttendanceFunction()">
+                                <i class="bi bi-play me-2"></i>Test Attendance Function
+                            </button>
+                            <button class="btn btn-success" onclick="createAttendanceModal()">
+                                <i class="bi bi-plus-circle me-2"></i>Create Attendance Modal
+                            </button>
+                            <button class="btn btn-info" onclick="testAttendanceAPI()">
+                                <i class="bi bi-cloud me-2"></i>Test Attendance API
+                            </button>
+                            <button class="btn btn-warning" onclick="fixAttendanceButton()">
+                                <i class="bi bi-tools me-2"></i>Fix Attendance Button
+                            </button>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="d-grid gap-2">
+                            <button class="btn btn-outline-primary" onclick="showWorkingAttendanceModal()">
+                                <i class="bi bi-calendar-check me-2"></i>Show Working Modal
+                            </button>
+                            <button class="btn btn-outline-success" onclick="testRecordAttendance()">
+                                <i class="bi bi-check-circle me-2"></i>Test Record Function
+                            </button>
+                            <button class="btn btn-outline-info" onclick="goToMainApp()">
+                                <i class="bi bi-house me-2"></i>Go to Main App
+                            </button>
+                            <button class="btn btn-outline-danger" onclick="clearResults()">
+                                <i class="bi bi-trash me-2"></i>Clear Results
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <hr>
+                
+                <div class="text-center">
+                    <a href="index.html" class="btn btn-primary me-2">Main Application</a>
+                    <a href="create_working_index.html" class="btn btn-success me-2">Working Version</a>
+                    <a href="cross_check_connection.php" class="btn btn-secondary">Cross-Check</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Working Attendance Modal -->
+    <div class="modal fade" id="attendanceModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        <i class="bi bi-calendar-check me-2"></i>Record Attendance
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="attendanceForm">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Service Date</label>
+                                    <input type="date" class="form-control" name="service_date" required>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Service Type</label>
+                                    <select class="form-select" name="service_type" required>
+                                        <option value="">Select service type</option>
+                                        <option value="Sunday Morning">Sunday Morning</option>
+                                        <option value="Sunday Evening">Sunday Evening</option>
+                                        <option value="Wednesday Prayer">Wednesday Prayer</option>
+                                        <option value="Special Service">Special Service</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label">Select Members Present</label>
+                            <div id="members-checklist" class="border rounded p-3" style="max-height: 300px; overflow-y: auto;">
+                                <div class="text-center text-muted">
+                                    <div class="spinner-border spinner-border-sm me-2"></div>
+                                    Loading members...
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label">Notes (Optional)</label>
+                            <textarea class="form-control" name="notes" rows="3" placeholder="Any additional notes about the service..."></textarea>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-success" onclick="submitAttendance()">
+                        <i class="bi bi-check-circle me-2"></i>Record Attendance
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <script>
+        let attendanceModal;
+        let members = [];
+        
+        function showResult(message, type = 'info') {
+            const container = document.getElementById('test-results');
+            const alertClass = type === 'success' ? 'alert-success' : type === 'error' ? 'alert-danger' : 'alert-info';
+            const icon = type === 'success' ? '✅' : type === 'error' ? '❌' : 'ℹ️';
+            const timestamp = new Date().toLocaleTimeString();
+            
+            const result = `
+                <div class="alert ${alertClass} alert-dismissible fade show">
+                    <strong>${icon} [${timestamp}]</strong> ${message}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            `;
+            
+            container.innerHTML = result + container.innerHTML;
+        }
+        
+        function clearResults() {
+            document.getElementById('test-results').innerHTML = '';
+        }
+        
+        function testAttendanceFunction() {
+            showResult('Testing attendance function...', 'info');
+            
+            // Check if global function exists
+            if (typeof window.showRecordAttendanceModal === 'function') {
+                showResult('✅ showRecordAttendanceModal function exists', 'success');
+                
+                // Test calling it
+                try {
+                    window.showRecordAttendanceModal();
+                    showResult('✅ Function called successfully', 'success');
+                } catch (error) {
+                    showResult(`❌ Function error: ${error.message}`, 'error');
+                }
+            } else {
+                showResult('❌ showRecordAttendanceModal function not found', 'error');
+                showResult('Creating the function...', 'info');
+                createAttendanceFunction();
+            }
+        }
+        
+        function createAttendanceFunction() {
+            showResult('Creating showRecordAttendanceModal function...', 'info');
+            
+            window.showRecordAttendanceModal = function() {
+                console.log('showRecordAttendanceModal called');
+                showWorkingAttendanceModal();
+            };
+            
+            showResult('✅ showRecordAttendanceModal function created', 'success');
+        }
+        
+        async function createAttendanceModal() {
+            showResult('Creating attendance modal...', 'info');
+            
+            // Initialize modal
+            const modalElement = document.getElementById('attendanceModal');
+            if (modalElement) {
+                attendanceModal = new bootstrap.Modal(modalElement);
+                showResult('✅ Attendance modal initialized', 'success');
+            } else {
+                showResult('❌ Modal element not found', 'error');
+            }
+        }
+        
+        async function testAttendanceAPI() {
+            showResult('Testing attendance API...', 'info');
+            
+            try {
+                const response = await fetch('api/attendance.php');
+                const data = await response.text();
+                
+                showResult(`API Response: ${response.status} ${response.statusText}`, response.ok ? 'success' : 'error');
+                showResult(`Response data: ${data.substring(0, 100)}...`, 'info');
+                
+                if (response.ok) {
+                    try {
+                        const jsonData = JSON.parse(data);
+                        showResult(`✅ Valid JSON response with ${Array.isArray(jsonData) ? jsonData.length : 'unknown'} items`, 'success');
+                    } catch (e) {
+                        showResult(`❌ Invalid JSON: ${e.message}`, 'error');
+                    }
+                }
+            } catch (error) {
+                showResult(`❌ API Error: ${error.message}`, 'error');
+            }
+        }
+        
+        async function loadMembers() {
+            try {
+                const response = await fetch('api/get_members.php');
+                if (response.ok) {
+                    members = await response.json();
+                    showResult(`✅ Loaded ${members.length} members`, 'success');
+                    return members;
+                } else {
+                    showResult(`❌ Failed to load members: ${response.status}`, 'error');
+                    return [];
+                }
+            } catch (error) {
+                showResult(`❌ Error loading members: ${error.message}`, 'error');
+                return [];
+            }
+        }
+        
+        async function showWorkingAttendanceModal() {
+            showResult('Opening working attendance modal...', 'info');
+            
+            // Load members first
+            await loadMembers();
+            
+            // Set today's date
+            const today = new Date().toISOString().split('T')[0];
+            document.querySelector('[name="service_date"]').value = today;
+            
+            // Populate members checklist
+            const checklist = document.getElementById('members-checklist');
+            
+            if (members.length === 0) {
+                checklist.innerHTML = `
+                    <div class="text-center text-muted">
+                        <i class="bi bi-people fs-1"></i>
+                        <p>No members found. Add members first.</p>
+                        <button class="btn btn-primary btn-sm" onclick="window.open('index.html', '_blank')">
+                            Add Members
+                        </button>
+                    </div>
+                `;
+            } else {
+                const membersHtml = members.map(member => `
+                    <div class="form-check mb-2">
+                        <input class="form-check-input" type="checkbox" value="${member.id}" id="member-${member.id}">
+                        <label class="form-check-label" for="member-${member.id}">
+                            <strong>${member.full_name}</strong>
+                            <small class="text-muted d-block">${member.phone || 'No phone'} • ${member.gender}</small>
+                        </label>
+                    </div>
+                `).join('');
+                
+                checklist.innerHTML = `
+                    <div class="mb-3">
+                        <button type="button" class="btn btn-outline-primary btn-sm me-2" onclick="selectAllMembers()">
+                            Select All
+                        </button>
+                        <button type="button" class="btn btn-outline-secondary btn-sm" onclick="clearAllMembers()">
+                            Clear All
+                        </button>
+                    </div>
+                    ${membersHtml}
+                `;
+            }
+            
+            // Show modal
+            if (!attendanceModal) {
+                await createAttendanceModal();
+            }
+            
+            if (attendanceModal) {
+                attendanceModal.show();
+                showResult('✅ Attendance modal opened', 'success');
+            } else {
+                showResult('❌ Failed to open modal', 'error');
+            }
+        }
+        
+        function selectAllMembers() {
+            document.querySelectorAll('#members-checklist input[type="checkbox"]').forEach(checkbox => {
+                checkbox.checked = true;
+            });
+            showResult('✅ All members selected', 'success');
+        }
+        
+        function clearAllMembers() {
+            document.querySelectorAll('#members-checklist input[type="checkbox"]').forEach(checkbox => {
+                checkbox.checked = false;
+            });
+            showResult('ℹ️ All members deselected', 'info');
+        }
+        
+        async function submitAttendance() {
+            showResult('Submitting attendance...', 'info');
+            
+            const form = document.getElementById('attendanceForm');
+
+            // Get selected members
+            const selectedMembers = [];
+            document.querySelectorAll('#members-checklist input[type="checkbox"]:checked').forEach(checkbox => {
+                selectedMembers.push(parseInt(checkbox.value));
+            });
+
+            if (selectedMembers.length === 0) {
+                showResult('❌ Please select at least one member', 'error');
+                return;
+            }
+
+            // Get form values directly
+            const serviceDate = document.querySelector('[name="service_date"]').value;
+            const serviceType = document.querySelector('[name="service_type"]').value;
+            const notes = document.querySelector('[name="notes"]').value;
+
+            const attendanceData = {
+                service_date: serviceDate,
+                service_type: serviceType,
+                notes: notes,
+                members: selectedMembers
+            };
+
+            showResult(`Recording attendance for ${selectedMembers.length} members`, 'info');
+            console.log('Form data:', attendanceData);
+
+            // Validate data before sending
+            if (!attendanceData.service_date) {
+                showResult('❌ Please select a service date', 'error');
+                return;
+            }
+
+            if (!attendanceData.service_type) {
+                showResult('❌ Please select a service type', 'error');
+                return;
+            }
+
+            try {
+                // Actually submit to the API
+                const apiData = {
+                    date: attendanceData.service_date,
+                    service: attendanceData.service_type,
+                    attendees: selectedMembers
+                };
+
+                showResult('Sending data to server...', 'info');
+                console.log('Submitting attendance data:', apiData);
+
+                const response = await fetch('api/save_attendance.php', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json'
+                    },
+                    body: JSON.stringify(apiData)
+                });
+
+                showResult(`Server response: ${response.status} ${response.statusText}`, response.ok ? 'success' : 'error');
+
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+
+                const result = await response.json();
+                console.log('API response:', result);
+
+                if (result.success) {
+                    showResult('✅ Attendance recorded successfully!', 'success');
+                    showResult(`Service: ${attendanceData.service_type} on ${attendanceData.service_date}`, 'info');
+                    showResult(`Members present: ${selectedMembers.length}`, 'info');
+
+                    // Close modal
+                    if (attendanceModal) {
+                        attendanceModal.hide();
+                    }
+
+                    // Reset form
+                    form.reset();
+                    clearAllMembers();
+                } else {
+                    throw new Error(result.error || 'Failed to record attendance');
+                }
+
+            } catch (error) {
+                console.error('Attendance submission error:', error);
+                showResult(`❌ Error recording attendance: ${error.message}`, 'error');
+            }
+        }
+        
+        function fixAttendanceButton() {
+            showResult('Fixing attendance button...', 'info');
+            
+            // Create the function if it doesn't exist
+            if (typeof window.showRecordAttendanceModal !== 'function') {
+                createAttendanceFunction();
+            }
+            
+            // Initialize modal if needed
+            if (!attendanceModal) {
+                createAttendanceModal();
+            }
+            
+            showResult('✅ Attendance button fixed', 'success');
+            showResult('You can now use the "Record Attendance" button in the main app', 'info');
+        }
+        
+        function testRecordAttendance() {
+            showResult('Testing record attendance...', 'info');
+            showWorkingAttendanceModal();
+        }
+        
+        function goToMainApp() {
+            showResult('Redirecting to main application...', 'info');
+            setTimeout(() => {
+                window.location.href = 'index.html';
+            }, 1000);
+        }
+        
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            showResult('Record Attendance Fix tool loaded', 'info');
+            
+            // Auto-create the function and modal
+            setTimeout(() => {
+                createAttendanceFunction();
+                createAttendanceModal();
+            }, 500);
+        });
+    </script>
+</body>
+</html>
