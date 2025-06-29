@@ -94,6 +94,9 @@
 
     <!-- Main Content -->
     <div class="container-fluid" style="margin-top: 76px;">
+        <!-- Message Container for Enhanced Notifications -->
+        <div id="message-container" class="position-fixed" style="top: 90px; right: 20px; z-index: 1060; max-width: 400px;"></div>
+
         <div class="row">
             <!-- Dashboard Section -->
             <div id="dashboard-section" class="content-section">
@@ -491,6 +494,54 @@
         };
 
 
+
+        // Add fingerprint registration function
+        window.registerFingerprint = function(memberId, memberName) {
+            console.log('Registering fingerprint for:', memberName, 'ID:', memberId);
+
+            // Show confirmation dialog
+            const confirmed = confirm(`Register fingerprint for "${memberName}"?\n\nNote: This is a simulation. In a real system, this would connect to a fingerprint scanner.`);
+
+            if (confirmed) {
+                // Simulate fingerprint registration
+                simulateFingerprintRegistration(memberId, memberName);
+            }
+        };
+
+        // Simulate fingerprint registration
+        async function simulateFingerprintRegistration(memberId, memberName) {
+            try {
+                // Update the member's has_fingerprint status
+                const response = await fetch('api/update_member.php', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        id: memberId,
+                        has_fingerprint: 1 // Set to true
+                    })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    alert(`✅ Fingerprint registered successfully for ${memberName}!`);
+
+                    // Update the member list dynamically without page refresh
+                    if (typeof app !== 'undefined' && app.currentSection === 'members') {
+                        await app.loadMembers();
+                        await app.renderMembersList();
+                        app.updateMemberStats();
+                    }
+                } else {
+                    alert(`❌ Failed to register fingerprint: ${result.error}`);
+                }
+            } catch (error) {
+                console.error('Error registering fingerprint:', error);
+                alert('Error registering fingerprint');
+            }
+        }
 
         console.log('All modal functions ensured');
 

@@ -88,7 +88,13 @@ class ChurchApp {
             }
         });
     }
-    
+
+    async handleFormSubmission(form) {
+        // This function handles generic form submissions
+        // For now, we'll just log it since specific forms have their own handlers
+        console.log('Form submission handled:', form.id);
+    }
+
     updateCurrentDate() {
         const now = new Date();
         const options = { 
@@ -103,7 +109,7 @@ class ChurchApp {
     async loadDashboardData() {
         try {
             this.showLoading(true);
-            
+
             // Load stats
             await Promise.all([
                 this.loadMembers(),
@@ -111,10 +117,10 @@ class ChurchApp {
                 this.loadTodayOfferings(),
                 this.loadInstrumentalists()
             ]);
-            
+
             this.updateDashboardStats();
             this.loadRecentActivity();
-            
+
         } catch (error) {
             console.error('Error loading dashboard data:', error);
             this.showMessage('Error loading dashboard data', 'error');
@@ -206,22 +212,22 @@ class ChurchApp {
     
     updateDashboardStats() {
         // Update member count
-        document.getElementById('total-members').textContent = this.members.length;
+        const memberElement = document.getElementById('total-members');
+        if (memberElement && this.members) {
+            memberElement.textContent = this.members.length;
+        }
 
         // Update instrumentalist count
-        document.getElementById('active-instrumentalists').textContent = this.instrumentalists.length;
+        const instrumentalistElement = document.getElementById('active-instrumentalists');
+        if (instrumentalistElement && this.instrumentalists) {
+            instrumentalistElement.textContent = this.instrumentalists.length;
+        }
 
         // Update today's attendance count
         const attendanceCount = this.todayAttendance ? this.todayAttendance.length : 0;
-        console.log('Updating dashboard - attendance count:', attendanceCount);
-        console.log('Today attendance data:', this.todayAttendance);
-
         const attendanceElement = document.getElementById('today-attendance');
         if (attendanceElement) {
             attendanceElement.textContent = attendanceCount;
-            console.log('Updated attendance element with count:', attendanceCount);
-        } else {
-            console.error('today-attendance element not found');
         }
 
         // Update today's offerings total
@@ -229,9 +235,6 @@ class ChurchApp {
         const offeringsElement = document.getElementById('today-offerings');
         if (offeringsElement) {
             offeringsElement.textContent = `$${offeringsTotal.toFixed(2)}`;
-            console.log('Updated offerings element with total:', offeringsTotal);
-        } else {
-            console.error('today-offerings element not found');
         }
     }
     
@@ -332,28 +335,76 @@ class ChurchApp {
         container.innerHTML = `
             <div class="col-12">
                 <div class="d-flex justify-content-between align-items-center mb-4">
-                    <h2><i class="bi bi-people me-2"></i>Members Management</h2>
-                    <button class="btn btn-primary" onclick="app.showAddMemberModal()">
+                    <div>
+                        <h2 class="mb-1"><i class="bi bi-people-fill me-2 text-primary"></i>Members Management</h2>
+                        <p class="text-muted mb-0">Manage church members, edit details, and track membership</p>
+                    </div>
+                    <button class="btn btn-primary btn-lg shadow-sm" onclick="app.showAddMemberModal()">
                         <i class="bi bi-person-plus me-2"></i>Add New Member
                     </button>
                 </div>
-                
-                <div class="card">
-                    <div class="card-header">
+
+                <!-- Stats Cards -->
+                <div class="row mb-4">
+                    <div class="col-md-4">
+                        <div class="card bg-primary text-white border-0 shadow-sm">
+                            <div class="card-body text-center">
+                                <i class="bi bi-people-fill fs-1 mb-2"></i>
+                                <h3 class="mb-0" id="total-members-count">0</h3>
+                                <p class="mb-0">Total Members</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="card bg-success text-white border-0 shadow-sm">
+                            <div class="card-body text-center">
+                                <i class="bi bi-person-check-fill fs-1 mb-2"></i>
+                                <h3 class="mb-0" id="active-members-count">0</h3>
+                                <p class="mb-0">Active Members</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="card bg-info text-white border-0 shadow-sm">
+                            <div class="card-body text-center">
+                                <i class="bi bi-fingerprint fs-1 mb-2"></i>
+                                <h3 class="mb-0" id="fingerprint-members-count">0</h3>
+                                <p class="mb-0">With Fingerprint</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card border-0 shadow-sm">
+                    <div class="card-header bg-white border-bottom">
                         <div class="row align-items-center">
                             <div class="col-md-6">
-                                <h5 class="mb-0">All Members</h5>
+                                <h5 class="mb-0 fw-bold">
+                                    <i class="bi bi-list-ul me-2 text-primary"></i>All Members
+                                    <span class="badge bg-primary ms-2" id="members-count">0</span>
+                                </h5>
                             </div>
                             <div class="col-md-6">
                                 <div class="input-group">
-                                    <span class="input-group-text"><i class="bi bi-search"></i></span>
-                                    <input type="text" class="form-control" placeholder="Search members..." id="member-search">
+                                    <span class="input-group-text bg-light border-end-0">
+                                        <i class="bi bi-search text-muted"></i>
+                                    </span>
+                                    <input type="text" class="form-control border-start-0 bg-light"
+                                           placeholder="Search members by name, phone, or email..."
+                                           id="member-search">
                                 </div>
                             </div>
                         </div>
                     </div>
-                    <div class="card-body">
-                        <div id="members-list">Loading members...</div>
+                    <div class="card-body p-4">
+                        <div id="members-list">
+                            <div class="text-center py-5">
+                                <div class="spinner-border text-primary" role="status">
+                                    <span class="visually-hidden">Loading...</span>
+                                </div>
+                                <p class="text-muted mt-3">Loading members...</p>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -361,15 +412,16 @@ class ChurchApp {
         
         await this.loadMembers();
         await this.renderMembersList();
+        this.updateMemberStats();
         this.setupMembersSearch();
     }
 
     async loadMembers() {
         try {
             const response = await fetch('api/get_members.php');
+
             if (response.ok) {
                 this.members = await response.json();
-                console.log('Loaded members:', this.members);
             } else {
                 console.error('Failed to load members:', response.status);
                 this.members = [];
@@ -411,6 +463,11 @@ class ChurchApp {
         const container = document.getElementById('members-list');
         const countBadge = document.getElementById('members-count');
 
+        if (!container) {
+            console.error('members-list container not found');
+            return;
+        }
+
         if (countBadge) {
             countBadge.textContent = `${members.length} member${members.length !== 1 ? 's' : ''}`;
         }
@@ -427,41 +484,73 @@ class ChurchApp {
         }
 
         const membersHtml = members.map(member => `
-            <div class="col-md-6 col-lg-4 mb-3">
-                <div class="card member-card h-100">
-                    <div class="card-body">
-                        <div class="d-flex justify-content-between align-items-start mb-2">
-                            <h6 class="card-title mb-0">${member.full_name}</h6>
+            <div class="col-md-6 col-lg-4 mb-4">
+                <div class="card member-card h-100 shadow-sm border-0">
+                    <div class="card-body p-4">
+                        <div class="d-flex justify-content-between align-items-start mb-3">
+                            <div class="d-flex align-items-center">
+                                <div class="avatar-circle me-3">
+                                    <i class="bi bi-person-fill"></i>
+                                </div>
+                                <div>
+                                    <h6 class="card-title mb-0 fw-bold">${member.full_name}</h6>
+                                    <small class="text-muted">Member ID: ${member.id}</small>
+                                </div>
+                            </div>
                             <div class="dropdown">
-                                <button class="btn btn-sm btn-outline-secondary" data-bs-toggle="dropdown">
+                                <button class="btn btn-sm btn-light rounded-circle" data-bs-toggle="dropdown" title="Actions">
                                     <i class="bi bi-three-dots-vertical"></i>
                                 </button>
-                                <ul class="dropdown-menu">
+                                <ul class="dropdown-menu dropdown-menu-end shadow">
                                     <li><a class="dropdown-item" href="#" onclick="app.editMember(${member.id})">
-                                        <i class="bi bi-pencil me-2"></i>Edit
+                                        <i class="bi bi-pencil me-2 text-primary"></i>Edit Member
                                     </a></li>
                                     <li><a class="dropdown-item" href="#" onclick="registerFingerprint(${member.id}, '${member.full_name}')">
-                                        <i class="bi bi-fingerprint me-2"></i>Register Fingerprint
+                                        <i class="bi bi-fingerprint me-2 text-info"></i>Register Fingerprint
                                     </a></li>
                                     <li><hr class="dropdown-divider"></li>
                                     <li><a class="dropdown-item text-danger" href="#" onclick="app.deleteMember(${member.id})">
-                                        <i class="bi bi-trash me-2"></i>Delete
+                                        <i class="bi bi-trash me-2"></i>Delete Member
                                     </a></li>
                                 </ul>
                             </div>
                         </div>
-                        <p class="card-text text-muted small mb-1">
-                            <i class="bi bi-telephone me-1"></i>${member.phone || 'No phone'}
-                        </p>
-                        <p class="card-text text-muted small mb-1">
-                            <i class="bi bi-person me-1"></i>${member.gender}
-                        </p>
-                        ${member.email ? `<p class="card-text text-muted small mb-1">
-                            <i class="bi bi-envelope me-1"></i>${member.email}
-                        </p>` : ''}
-                        <div class="mt-2">
-                            <span class="badge bg-success">Active</span>
-                            ${member.created_at ? `<small class="text-muted ms-2">Joined ${new Date(member.created_at).toLocaleDateString()}</small>` : ''}
+
+                        <div class="member-details">
+                            <div class="detail-item mb-2">
+                                <i class="bi bi-telephone-fill me-2 text-success"></i>
+                                <span class="detail-text">${member.phone || 'No phone number'}</span>
+                            </div>
+                            <div class="detail-item mb-2">
+                                <i class="bi bi-person-badge-fill me-2 text-info"></i>
+                                <span class="detail-text">${member.gender}</span>
+                            </div>
+                            ${member.email ? `
+                                <div class="detail-item mb-2">
+                                    <i class="bi bi-envelope-fill me-2 text-warning"></i>
+                                    <span class="detail-text">${member.email}</span>
+                                </div>
+                            ` : ''}
+                            ${member.occupation ? `
+                                <div class="detail-item mb-2">
+                                    <i class="bi bi-briefcase-fill me-2 text-secondary"></i>
+                                    <span class="detail-text">${member.occupation}</span>
+                                </div>
+                            ` : ''}
+                        </div>
+
+                        <div class="mt-3 pt-3 border-top">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <span class="badge bg-success-subtle text-success px-3 py-2">
+                                    <i class="bi bi-check-circle me-1"></i>Active
+                                </span>
+                                ${member.created_at ? `
+                                    <small class="text-muted">
+                                        <i class="bi bi-calendar-plus me-1"></i>
+                                        ${new Date(member.created_at).toLocaleDateString()}
+                                    </small>
+                                ` : ''}
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -472,8 +561,43 @@ class ChurchApp {
     }
 
     async renderMembersList() {
+        if (!this.members) {
+            console.error('No members data available for rendering');
+            return;
+        }
         this.renderFilteredMembers(this.members);
     }
+
+    updateMemberStats() {
+        if (!this.members) return;
+
+        const totalMembers = this.members.length;
+        const activeMembers = this.members.filter(m => m.status !== 'inactive').length;
+        const fingerprintMembers = this.members.filter(m => m.has_fingerprint == 1 || m.has_fingerprint === true).length;
+
+        // Update stat cards in members section
+        const totalElement = document.getElementById('total-members-count');
+        const activeElement = document.getElementById('active-members-count');
+        const fingerprintElement = document.getElementById('fingerprint-members-count');
+
+        if (totalElement) {
+            totalElement.textContent = totalMembers;
+        }
+        if (activeElement) {
+            activeElement.textContent = activeMembers;
+        }
+        if (fingerprintElement) {
+            fingerprintElement.textContent = fingerprintMembers;
+        }
+
+        // Update members count badge in the list
+        const membersCountBadge = document.getElementById('members-count');
+        if (membersCountBadge) {
+            membersCountBadge.textContent = totalMembers;
+        }
+    }
+
+
 
     async loadAttendanceSection(container) {
         container.innerHTML = `
@@ -1403,7 +1527,14 @@ class ChurchApp {
             if (result.success) {
                 this.showMessage('Payment created successfully!', 'success');
                 bootstrap.Modal.getInstance(document.querySelector('.modal')).hide();
+
+                // Update payment data dynamically
                 await this.loadSimplePaymentData();
+
+                // Update dashboard if we're there
+                if (this.currentSection === 'dashboard') {
+                    this.updateDashboardStats();
+                }
             } else {
                 this.showMessage(result.error || 'Failed to create payment', 'error');
             }
@@ -1666,22 +1797,41 @@ class ChurchApp {
 
     async loadPaystackBalance() {
         try {
+            console.log('Loading Paystack balance...');
             const response = await fetch('api/paystack_payments.php?action=balance');
+
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
             const result = await response.json();
+            console.log('Paystack balance result:', result);
 
             const balanceElement = document.getElementById('paystack-balance');
             if (balanceElement) {
                 if (result.success) {
-                    balanceElement.textContent = result.formatted_balance || 'GH₵0.00';
+                    const balance = result.formatted_balance || 'GH₵0.00';
+                    balanceElement.textContent = balance;
+                    balanceElement.style.color = '#fff';
+                    balanceElement.title = `Last updated: ${new Date().toLocaleTimeString()}`;
+
+                    // Update last updated time
+                    const lastUpdatedElement = document.getElementById('balance-last-updated');
+                    if (lastUpdatedElement) {
+                        lastUpdatedElement.textContent = `Last updated: ${new Date().toLocaleTimeString()}`;
+                    }
+
                     // Show success notification on first load
                     if (!this.paystackNotificationShown) {
-                        this.showMessage('✅ Paystack connected successfully! Balance loaded.', 'success');
+                        this.showMessage(`✅ Paystack connected! Balance: ${balance}`, 'success');
                         this.paystackNotificationShown = true;
                     }
                 } else {
                     balanceElement.textContent = 'Error loading';
+                    balanceElement.style.color = '#ffcccc';
                     balanceElement.title = result.error || 'Failed to load balance';
-                    this.showMessage('⚠️ Paystack connection issue: ' + (result.error || 'Failed to load balance'), 'warning');
+                    console.error('Paystack balance error:', result.error);
+                    this.showMessage('⚠️ Paystack balance error: ' + (result.error || 'Failed to load balance'), 'warning');
                 }
             }
         } catch (error) {
@@ -1689,6 +1839,8 @@ class ChurchApp {
             const balanceElement = document.getElementById('paystack-balance');
             if (balanceElement) {
                 balanceElement.textContent = 'Connection Error';
+                balanceElement.style.color = '#ffcccc';
+                balanceElement.title = 'Failed to connect to Paystack API';
                 this.showMessage('❌ Paystack connection failed. Check configuration.', 'error');
             }
         }
@@ -1698,6 +1850,145 @@ class ChurchApp {
         this.showMessage('Refreshing Paystack balance...', 'info');
         await this.loadPaystackBalance();
         this.showMessage('Balance refreshed', 'success');
+    }
+
+    async viewPaymentHistory() {
+        try {
+            // Load payment history
+            const response = await fetch('api/payment_processing.php?action=payment_history');
+            const result = await response.json();
+
+            if (result.success) {
+                this.showPaymentHistoryModal(result.payments);
+            } else {
+                this.showMessage('Failed to load payment history', 'error');
+            }
+        } catch (error) {
+            console.error('Error loading payment history:', error);
+            this.showMessage('Error loading payment history', 'error');
+        }
+    }
+
+    showPaymentHistoryModal(payments) {
+        const modal = document.createElement('div');
+        modal.className = 'modal fade';
+        modal.innerHTML = `
+            <div class="modal-dialog modal-xl">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">
+                            <i class="bi bi-clock-history me-2"></i>Payment History
+                        </h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        ${payments.length === 0 ?
+                            '<div class="text-center text-muted"><p>No payment history found</p></div>' :
+                            `<div class="table-responsive">
+                                <table class="table table-striped">
+                                    <thead>
+                                        <tr>
+                                            <th>Date</th>
+                                            <th>Instrumentalist</th>
+                                            <th>Service</th>
+                                            <th>Amount</th>
+                                            <th>Method</th>
+                                            <th>Status</th>
+                                            <th>Reference</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        ${payments.map(payment => `
+                                            <tr>
+                                                <td>${new Date(payment.payment_date || payment.created_at).toLocaleDateString()}</td>
+                                                <td>${payment.full_name}</td>
+                                                <td>${payment.service_type} - ${payment.service_date}</td>
+                                                <td>GH₵${payment.amount}</td>
+                                                <td>
+                                                    <span class="badge ${payment.payment_method === 'Paystack Transfer' ? 'bg-primary' : 'bg-secondary'}">
+                                                        ${payment.payment_method}
+                                                    </span>
+                                                </td>
+                                                <td>
+                                                    <span class="badge ${
+                                                        payment.payment_status === 'Paid' ? 'bg-success' :
+                                                        payment.payment_status === 'Failed' ? 'bg-danger' :
+                                                        payment.payment_status === 'Approved' ? 'bg-info' : 'bg-warning'
+                                                    }">
+                                                        ${payment.payment_status}
+                                                    </span>
+                                                </td>
+                                                <td>
+                                                    <small class="text-muted">
+                                                        ${payment.paystack_transfer_code || payment.reference_number || 'N/A'}
+                                                    </small>
+                                                </td>
+                                            </tr>
+                                        `).join('')}
+                                    </tbody>
+                                </table>
+                            </div>`
+                        }
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                        <button type="button" class="btn btn-primary" onclick="app.exportPaymentHistory()">
+                            <i class="bi bi-download me-1"></i>Export CSV
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        document.body.appendChild(modal);
+        const bsModal = new bootstrap.Modal(modal);
+        bsModal.show();
+
+        modal.addEventListener('hidden.bs.modal', () => {
+            document.body.removeChild(modal);
+        });
+    }
+
+    async exportPaymentHistory() {
+        try {
+            const response = await fetch('api/payment_processing.php?action=payment_history&limit=1000');
+            const result = await response.json();
+
+            if (result.success && result.payments.length > 0) {
+                // Create CSV content
+                const headers = ['Date', 'Instrumentalist', 'Service', 'Amount', 'Method', 'Status', 'Reference'];
+                const csvContent = [
+                    headers.join(','),
+                    ...result.payments.map(payment => [
+                        new Date(payment.payment_date || payment.created_at).toLocaleDateString(),
+                        payment.full_name,
+                        `${payment.service_type} - ${payment.service_date}`,
+                        payment.amount,
+                        payment.payment_method,
+                        payment.payment_status,
+                        payment.paystack_transfer_code || payment.reference_number || 'N/A'
+                    ].join(','))
+                ].join('\\n');
+
+                // Download CSV
+                const blob = new Blob([csvContent], { type: 'text/csv' });
+                const url = window.URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = `payment_history_${new Date().toISOString().split('T')[0]}.csv`;
+                link.style.visibility = 'hidden';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+
+                this.showMessage('Payment history exported successfully', 'success');
+            } else {
+                this.showMessage('No payment history to export', 'warning');
+            }
+        } catch (error) {
+            console.error('Error exporting payment history:', error);
+            this.showMessage('Error exporting payment history', 'error');
+        }
     }
 
     async refreshPaymentData() {
@@ -1932,7 +2223,7 @@ class ChurchApp {
         if (showConfirm && !confirm('Are you sure you want to approve this payment?')) return;
 
         try {
-            const response = await fetch('api/payment_processing.php?action=approve_payment', {
+            const response = await fetch('api/payment_processing_simple.php?action=approve_payment', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -2148,9 +2439,31 @@ class ChurchApp {
             const result = await response.json();
 
             if (result.success) {
-                this.showMessage(`✅ Paystack transfer successful! Amount: ${result.amount}`, 'success');
+                // Show detailed success message
+                const successMessage = `
+                    <div class="alert alert-success alert-dismissible fade show" role="alert">
+                        <h5 class="alert-heading">🎉 Payment Successful!</h5>
+                        <p><strong>Amount:</strong> ${result.amount}</p>
+                        <p><strong>Transfer Code:</strong> ${result.transfer_code || 'N/A'}</p>
+                        <p><strong>Status:</strong> Payment completed successfully via Paystack MoMo transfer</p>
+                        <hr>
+                        <p class="mb-0">The instrumentalist will receive the payment in their mobile money account.</p>
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                `;
+
+                // Show the detailed message
+                const messageContainer = document.getElementById('message-container') || document.body;
+                const tempDiv = document.createElement('div');
+                tempDiv.innerHTML = successMessage;
+                messageContainer.appendChild(tempDiv.firstElementChild);
+
+                // Also show simple message
+                this.showMessage(`✅ Payment successful! ${result.amount} sent via Paystack`, 'success');
+
                 bootstrap.Modal.getInstance(document.querySelector('.modal')).hide();
                 await this.loadPaymentData();
+                await this.loadPaystackBalance(); // Refresh balance
             } else {
                 this.showMessage(`❌ Paystack transfer failed: ${result.error}`, 'error');
             }
@@ -2161,23 +2474,57 @@ class ChurchApp {
     }
 
     showMessage(message, type = 'info') {
+        // Clear ALL existing messages of the same type to prevent duplicates
+        const existingToasts = document.querySelectorAll(`.alert-${type}.position-fixed`);
+        existingToasts.forEach(toast => toast.remove());
+
+        // For success messages, also clear any error messages to avoid confusion
+        if (type === 'success') {
+            const errorToasts = document.querySelectorAll(`.alert-error.position-fixed, .alert-danger.position-fixed`);
+            errorToasts.forEach(toast => toast.remove());
+        }
+
         // Create and show toast message
         const toast = document.createElement('div');
-        toast.className = `alert alert-${type} alert-dismissible fade show position-fixed`;
-        toast.style.cssText = 'top: 100px; right: 20px; z-index: 9999; min-width: 300px;';
+
+        // Make success messages more prominent
+        const isSuccess = type === 'success';
+        const extraClasses = isSuccess ? ' border-success shadow-lg' : '';
+        const fontSize = isSuccess ? 'font-size: 1.1rem; font-weight: 600;' : '';
+
+        // Stack messages vertically
+        const existingMessages = document.querySelectorAll('.alert.position-fixed');
+        const topOffset = 100 + (existingMessages.length * 80);
+
+        toast.className = `alert alert-${type} alert-dismissible fade show position-fixed${extraClasses}`;
+        toast.style.cssText = `top: ${topOffset}px; right: 20px; z-index: 9999; min-width: 350px; ${fontSize}`;
+
+        // Add icon based on type
+        let icon = '';
+        switch(type) {
+            case 'success': icon = '✅ '; break;
+            case 'error': icon = '❌ '; break;
+            case 'warning': icon = '⚠️ '; break;
+            case 'info': icon = 'ℹ️ '; break;
+        }
+
         toast.innerHTML = `
-            ${message}
+            <div style="display: flex; align-items: center;">
+                <span style="margin-right: 8px;">${icon}</span>
+                <span>${message}</span>
+            </div>
             <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
         `;
 
         document.body.appendChild(toast);
 
-        // Auto remove after 5 seconds
+        // Auto remove after longer time for success messages
+        const autoRemoveTime = isSuccess ? 7000 : 5000;
         setTimeout(() => {
             if (toast.parentNode) {
                 toast.parentNode.removeChild(toast);
             }
-        }, 5000);
+        }, autoRemoveTime);
     }
     showCalculatePaymentsModal() {
         const modal = document.createElement('div');
@@ -2639,6 +2986,12 @@ class ChurchApp {
     }
 
     async submitAddMember() {
+        // Prevent multiple rapid clicks
+        if (this.isSubmittingMember) {
+            return;
+        }
+        this.isSubmittingMember = true;
+
         const form = document.getElementById('add-member-form');
         const formData = new FormData(form);
 
@@ -2651,6 +3004,17 @@ class ChurchApp {
             address: formData.get('address')
         };
 
+        // Validate required fields
+        if (!data.full_name || !data.full_name.trim()) {
+            this.showMessage('Please enter the member\'s full name', 'error');
+            return;
+        }
+
+        if (!data.gender) {
+            this.showMessage('Please select the member\'s gender', 'error');
+            return;
+        }
+
         try {
             const response = await fetch('api/save_members.php', {
                 method: 'POST',
@@ -2658,31 +3022,301 @@ class ChurchApp {
                 body: JSON.stringify(data)
             });
 
+            if (!response.ok) {
+                this.showMessage(`API Error: ${response.status} ${response.statusText}`, 'error');
+                return;
+            }
+
             const result = await response.json();
 
-            if (result.id) {
-                this.showMessage('Member added successfully', 'success');
-                bootstrap.Modal.getInstance(document.querySelector('.modal')).hide();
-                await this.loadMembers();
-                if (this.currentSection === 'members') {
-                    await this.renderMembersList();
+            if (result.success) {
+                // Show success message using API message or fallback
+                const successMessage = result.message || `Member "${data.full_name}" added successfully`;
+                this.showMessage(`✅ ${successMessage}`, 'success');
+
+                // Hide modal after showing success message
+                const modal = document.querySelector('.modal');
+                if (modal) {
+                    const modalInstance = bootstrap.Modal.getInstance(modal);
+                    if (modalInstance) {
+                        modalInstance.hide();
+                    }
                 }
+
+                // Small delay to ensure modal is properly hidden
+                setTimeout(async () => {
+                    // Update members data and UI dynamically
+                    await this.loadMembers();
+
+                    // Always update UI if we're on the members section
+                    if (this.currentSection === 'members') {
+                        await this.renderMembersList();
+                        this.updateMemberStats();
+                    }
+
+                    // Always update dashboard stats
+                    this.updateDashboardStats();
+
+                    // Reset the submission flag
+                    this.isSubmittingMember = false;
+                }, 100);
             } else {
                 this.showMessage(result.error || 'Failed to add member', 'error');
+                this.isSubmittingMember = false;
             }
 
         } catch (error) {
-            this.showMessage('Error adding member', 'error');
+            console.error('Error adding member:', error);
+            this.showMessage('Error adding member: ' + error.message, 'error');
+        } finally {
+            // Reset the submission flag
+            this.isSubmittingMember = false;
         }
     }
 
-    editMember(id) {
-        this.showMessage('Edit member functionality coming soon', 'info');
+    async editMember(id) {
+        try {
+            // Find the member data
+            const member = this.members.find(m => m.id == id);
+            if (!member) {
+                this.showMessage('Member not found', 'error');
+                return;
+            }
+
+            // Show edit modal
+            this.showEditMemberModal(member);
+        } catch (error) {
+            console.error('Error editing member:', error);
+            this.showMessage('Error loading member data', 'error');
+        }
     }
 
-    deleteMember(id) {
-        if (confirm('Are you sure you want to delete this member?')) {
-            this.showMessage('Delete member functionality coming soon', 'info');
+    async deleteMember(id) {
+        try {
+            // Find the member data
+            const member = this.members.find(m => m.id == id);
+            if (!member) {
+                this.showMessage('Member not found', 'error');
+                return;
+            }
+
+            // Show confirmation dialog
+            const confirmed = confirm(`Are you sure you want to delete "${member.full_name}"?\n\nThis action cannot be undone.`);
+            if (!confirmed) return;
+
+            // Delete the member
+            const response = await fetch('api/delete_member.php', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ id: id })
+            });
+
+            const result = await response.json();
+
+            if (result.success) {
+                this.showMessage(`Member "${member.full_name}" deleted successfully`, 'success');
+
+                // Update members data and UI dynamically
+                await this.loadMembers();
+                if (this.currentSection === 'members') {
+                    await this.renderMembersList();
+                    this.updateMemberStats();
+                }
+
+                // Also update dashboard stats if we're on dashboard
+                if (this.currentSection === 'dashboard') {
+                    this.updateDashboardStats();
+                }
+            } else {
+                this.showMessage(result.error || 'Failed to delete member', 'error');
+            }
+        } catch (error) {
+            console.error('Error deleting member:', error);
+            this.showMessage('Error deleting member', 'error');
+        }
+    }
+
+    showEditMemberModal(member) {
+        const modal = document.createElement('div');
+        modal.className = 'modal fade';
+        modal.innerHTML = `
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">
+                            <i class="bi bi-pencil-square me-2"></i>Edit Member
+                        </h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <form id="edit-member-form">
+                            <input type="hidden" id="edit-member-id" value="${member.id}">
+
+                            <div class="mb-3">
+                                <label for="edit-full-name" class="form-label">Full Name *</label>
+                                <input type="text" class="form-control" id="edit-full-name" value="${member.full_name}" required>
+                            </div>
+
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label for="edit-phone" class="form-label">Phone Number</label>
+                                    <input type="tel" class="form-control" id="edit-phone" value="${member.phone || ''}">
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label for="edit-gender" class="form-label">Gender *</label>
+                                    <select class="form-select" id="edit-gender" required>
+                                        <option value="Male" ${member.gender === 'Male' ? 'selected' : ''}>Male</option>
+                                        <option value="Female" ${member.gender === 'Female' ? 'selected' : ''}>Female</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="edit-email" class="form-label">Email Address</label>
+                                <input type="email" class="form-control" id="edit-email" value="${member.email || ''}">
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="edit-address" class="form-label">Address</label>
+                                <textarea class="form-control" id="edit-address" rows="2">${member.address || ''}</textarea>
+                            </div>
+
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label for="edit-date-of-birth" class="form-label">Date of Birth</label>
+                                    <input type="date" class="form-control" id="edit-date-of-birth" value="${member.date_of_birth || ''}">
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label for="edit-occupation" class="form-label">Occupation</label>
+                                    <input type="text" class="form-control" id="edit-occupation" value="${member.occupation || ''}">
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="button" class="btn btn-primary" onclick="app.submitEditMember()">
+                            <i class="bi bi-check-lg me-1"></i>Update Member
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        document.body.appendChild(modal);
+        const bsModal = new bootstrap.Modal(modal);
+        bsModal.show();
+
+        modal.addEventListener('hidden.bs.modal', () => {
+            document.body.removeChild(modal);
+        });
+    }
+
+    async submitEditMember() {
+        try {
+            const id = document.getElementById('edit-member-id').value;
+            const fullName = document.getElementById('edit-full-name').value.trim();
+            const phone = document.getElementById('edit-phone').value.trim();
+            const gender = document.getElementById('edit-gender').value;
+            const email = document.getElementById('edit-email').value.trim();
+            const address = document.getElementById('edit-address').value.trim();
+            const dateOfBirth = document.getElementById('edit-date-of-birth').value;
+            const occupation = document.getElementById('edit-occupation').value.trim();
+
+            if (!fullName) {
+                this.showMessage('Please enter the member\'s full name', 'error');
+                return;
+            }
+
+            const memberData = {
+                id: parseInt(id),
+                full_name: fullName,
+                phone: phone || null,
+                gender: gender,
+                email: email || null,
+                address: address || null,
+                date_of_birth: dateOfBirth || null,
+                occupation: occupation || null
+            };
+
+            const response = await fetch('api/update_member.php', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(memberData)
+            });
+
+            const result = await response.json();
+
+            if (result.success) {
+                this.showMessage('Member updated successfully', 'success');
+                bootstrap.Modal.getInstance(document.querySelector('.modal')).hide();
+
+                // Update members data and UI dynamically
+                await this.loadMembers();
+                if (this.currentSection === 'members') {
+                    await this.renderMembersList();
+                    this.updateMemberStats();
+                }
+
+                // Also update dashboard if we're there
+                if (this.currentSection === 'dashboard') {
+                    this.updateDashboardStats();
+                }
+            } else {
+                this.showMessage(result.error || 'Failed to update member', 'error');
+            }
+        } catch (error) {
+            console.error('Error updating member:', error);
+            this.showMessage('Error updating member', 'error');
+        }
+    }
+
+    // Add global registerFingerprint function
+    registerFingerprint(memberId, memberName) {
+        // For now, simulate fingerprint registration
+        const confirmed = confirm(`Register fingerprint for "${memberName}"?\n\nNote: This is a simulation. In a real system, this would connect to a fingerprint scanner.`);
+
+        if (confirmed) {
+            // Simulate successful fingerprint registration
+            this.simulateFingerprintRegistration(memberId, memberName);
+        }
+    }
+
+    async simulateFingerprintRegistration(memberId, memberName) {
+        try {
+            // Update the member's has_fingerprint status
+            const response = await fetch('api/update_member.php', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    id: memberId,
+                    has_fingerprint: true
+                })
+            });
+
+            const result = await response.json();
+
+            if (result.success) {
+                this.showMessage(`✅ Fingerprint registered successfully for ${memberName}`, 'success');
+
+                // Reload members if we're on the members page
+                if (this.currentSection === 'members') {
+                    await this.loadMembers();
+                    await this.renderMembersList();
+                    this.updateMemberStats();
+                }
+            } else {
+                this.showMessage(`❌ Failed to register fingerprint: ${result.error}`, 'error');
+            }
+        } catch (error) {
+            console.error('Error registering fingerprint:', error);
+            this.showMessage('Error registering fingerprint', 'error');
         }
     }
 
@@ -3145,6 +3779,16 @@ class ChurchApp {
             if (result.success) {
                 this.showMessage(`Attendance recorded for ${selectedMembers.length} members`, 'success');
                 bootstrap.Modal.getInstance(document.querySelector('.modal')).hide();
+
+                // Update attendance data dynamically
+                if (this.currentSection === 'attendance') {
+                    this.loadAttendanceData();
+                }
+
+                // Update dashboard stats if we're on dashboard
+                if (this.currentSection === 'dashboard') {
+                    this.updateDashboardStats();
+                }
             } else {
                 this.showMessage(result.error || 'Failed to record attendance', 'error');
             }
@@ -3252,6 +3896,16 @@ class ChurchApp {
             if (result.success) {
                 this.showMessage('Offering recorded successfully', 'success');
                 bootstrap.Modal.getInstance(document.querySelector('.modal')).hide();
+
+                // Update offerings data dynamically
+                if (this.currentSection === 'offerings') {
+                    this.loadOfferingsData();
+                }
+
+                // Update dashboard stats if we're on dashboard
+                if (this.currentSection === 'dashboard') {
+                    this.updateDashboardStats();
+                }
             } else {
                 this.showMessage(result.error || 'Failed to record offering', 'error');
             }
@@ -3471,7 +4125,14 @@ class ChurchApp {
             if (result.success) {
                 this.showMessage('Instrumentalist added successfully', 'success');
                 bootstrap.Modal.getInstance(document.querySelector('.modal')).hide();
+
+                // Update instrumentalists data dynamically
                 await this.loadInstrumentalists();
+
+                // Update payment section if we're there
+                if (this.currentSection === 'payments') {
+                    await this.loadSimplePaymentData();
+                }
             } else {
                 this.showMessage(result.error || 'Failed to add instrumentalist', 'error');
             }

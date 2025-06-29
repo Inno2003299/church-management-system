@@ -11,6 +11,9 @@ define('PAYSTACK_SECRET_KEY', 'sk_test_64b8468b3815193458e76fbf3e2a66ca4ee58134'
 define('PAYSTACK_PUBLIC_KEY', 'pk_test_d750f30e2326a546471915aa442a256939219f95'); // Your actual public key
 define('PAYSTACK_BASE_URL', 'https://api.paystack.co');
 
+// Test mode configuration - set to false for real transfers
+define('PAYSTACK_TEST_MODE', false);
+
 /**
  * Make HTTP request to Paystack API
  */
@@ -178,14 +181,20 @@ function verify_paystack_transfer($transfer_code) {
  * Get Paystack balance
  */
 function get_paystack_balance() {
+    // If in test mode, use mock balance that decreases with payments
+    if (defined('PAYSTACK_TEST_MODE') && PAYSTACK_TEST_MODE === true) {
+        return get_mock_balance();
+    }
+
     try {
         $response = paystack_request('/balance');
-        
+
         if ($response['success'] && $response['data']['status']) {
             return [
                 'success' => true,
                 'balance' => $response['data']['data'][0]['balance'] / 100, // Convert from pesewas
-                'currency' => $response['data']['data'][0]['currency']
+                'currency' => $response['data']['data'][0]['currency'],
+                'formatted_balance' => 'GH₵' . number_format($response['data']['data'][0]['balance'] / 100, 2)
             ];
         } else {
             return [
@@ -199,6 +208,51 @@ function get_paystack_balance() {
             'error' => 'API Error: ' . $e->getMessage()
         ];
     }
+}
+
+/**
+ * Get mock balance that decreases with test payments
+ */
+function get_mock_balance() {
+    require_once __DIR__ . '/db.php';
+    global $conn;
+
+    // Starting mock balance
+    $starting_balance = 100.00; // GH₵100
+
+    // Calculate total test payments made
+    $stmt = $conn->prepare("
+        SELECT COALESCE(SUM(amount), 0) as total_paid
+        FROM instrumentalist_payments
+        WHERE payment_status = 'Paid'
+        AND payment_method = 'Paystack Transfer'
+    ");
+
+    if ($stmt && $stmt->execute()) {
+        $result = $stmt->get_result()->fetch_assoc();
+        $total_paid = (float)$result['total_paid'];
+
+        // Calculate remaining balance
+        $current_balance = $starting_balance - $total_paid;
+
+        // Ensure balance doesn't go negative
+        $current_balance = max(0, $current_balance);
+
+        return [
+            'success' => true,
+            'balance' => $current_balance,
+            'formatted_balance' => 'GH₵' . number_format($current_balance, 2),
+            'currency' => 'GHS',
+            'test_mode' => true,
+            'starting_balance' => $starting_balance,
+            'total_paid' => $total_paid
+        ];
+    }
+
+    return [
+        'success' => false,
+        'error' => 'Failed to calculate mock balance'
+    ];
 }
 
 /**

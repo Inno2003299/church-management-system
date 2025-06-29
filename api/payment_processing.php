@@ -1,6 +1,20 @@
 <?php
+// Enable error reporting for debugging
+error_reporting(E_ALL);
+ini_set('display_errors', 0); // Don't display errors in response
+ini_set('log_errors', 1);
+
 header('Content-Type: application/json');
 header('Access-Control-Allow-Origin: *');
+
+try {
+    // Include database connection
+    require_once __DIR__ . '/../config/db.php';
+
+    // Check database connection
+    if (!isset($conn) || $conn->connect_error) {
+        throw new Exception("Database connection failed");
+    }
 
 // Helper functions
 function respond_json($data, $status_code = 200) {
@@ -46,10 +60,7 @@ function find_or_create_service(mysqli $conn, string $date, string $type): int {
     return $stmt->insert_id;
 }
 
-try {
-    require_once '../config/db.php';
-
-    $method = $_SERVER['REQUEST_METHOD'];
+$method = $_SERVER['REQUEST_METHOD'];
 
 switch ($method) {
     case 'GET':
@@ -69,6 +80,9 @@ switch ($method) {
                     break;
                 case 'batch_details':
                     get_batch_details((int)$_GET['batch_id']);
+                    break;
+                case 'payment_history':
+                    get_payment_history();
                     break;
                 default:
                     respond_error('Invalid action');
@@ -119,6 +133,18 @@ switch ($method) {
     
     default:
         respond_error('Method not allowed', 405);
+}
+
+} catch (Exception $e) {
+    error_log("Payment Processing API Error: " . $e->getMessage());
+    error_log("Stack trace: " . $e->getTraceAsString());
+    http_response_code(500);
+    echo json_encode(['error' => 'Server error: ' . $e->getMessage()]);
+} catch (Error $e) {
+    error_log("Payment Processing API Fatal Error: " . $e->getMessage());
+    error_log("Stack trace: " . $e->getTraceAsString());
+    http_response_code(500);
+    echo json_encode(['error' => 'Fatal error: ' . $e->getMessage()]);
 }
 
 function get_pending_payments() {
@@ -190,6 +216,51 @@ function get_payment_summary() {
         'monthly_total' => $monthly,
         'filter_date' => $date_filter
     ]);
+}
+
+function get_payment_history() {
+    global $conn;
+
+    $limit = isset($_GET['limit']) ? (int)$_GET['limit'] : 50;
+    $offset = isset($_GET['offset']) ? (int)$_GET['offset'] : 0;
+
+    $stmt = $conn->prepare("
+        SELECT ip.*, i.full_name, i.instrument,
+               s.service_date, s.service_type
+        FROM instrumentalist_payments ip
+        JOIN instrumentalists i ON ip.instrumentalist_id = i.id
+        JOIN services s ON ip.service_id = s.id
+        ORDER BY ip.updated_at DESC, ip.created_at DESC
+        LIMIT ? OFFSET ?
+    ");
+
+    $stmt->bind_param('ii', $limit, $offset);
+
+    if ($stmt && $stmt->execute()) {
+        $result = $stmt->get_result();
+        $payments = [];
+        while ($row = $result->fetch_assoc()) {
+            $payments[] = $row;
+        }
+
+        // Get total count
+        $count_stmt = $conn->prepare("
+            SELECT COUNT(*) as total
+            FROM instrumentalist_payments ip
+        ");
+        $count_stmt->execute();
+        $total = $count_stmt->get_result()->fetch_assoc()['total'];
+
+        respond_json([
+            'success' => true,
+            'payments' => $payments,
+            'total' => $total,
+            'limit' => $limit,
+            'offset' => $offset
+        ]);
+    } else {
+        respond_error('Failed to load payment history: ' . ($stmt ? $stmt->error : $conn->error));
+    }
 }
 
 function calculate_service_payments() {
@@ -728,9 +799,4 @@ function bulk_process_payments() {
         $conn->rollback();
         respond_error('Failed to process payments: ' . $e->getMessage());
     }
-}
-
-} catch (Exception $e) {
-    http_response_code(500);
-    echo json_encode(['error' => 'Server error: ' . $e->getMessage()]);
 }

@@ -4,10 +4,21 @@
  * Handles MoMo payments to instrumentalists via Paystack
  */
 
-require 'helpers.php';
-require '../config/paystack.php';
+// Enable error reporting for debugging
+error_reporting(E_ALL);
+ini_set('display_errors', 0); // Don't display errors in response
+ini_set('log_errors', 1);
 
-$method = $_SERVER['REQUEST_METHOD'];
+try {
+    require __DIR__ . '/helpers.php';
+    require __DIR__ . '/../config/paystack.php';
+
+    // Ensure we have database connection
+    if (!isset($conn) || $conn->connect_error) {
+        throw new Exception("Database connection failed");
+    }
+
+    $method = $_SERVER['REQUEST_METHOD'];
 
 switch ($method) {
     case 'GET':
@@ -50,6 +61,18 @@ switch ($method) {
     
     default:
         respond_error('Method not allowed', 405);
+}
+
+} catch (Exception $e) {
+    error_log("Paystack API Fatal Error: " . $e->getMessage());
+    error_log("Stack trace: " . $e->getTraceAsString());
+    http_response_code(500);
+    echo json_encode(['error' => 'Server error: ' . $e->getMessage()]);
+} catch (Error $e) {
+    error_log("Paystack API Fatal Error: " . $e->getMessage());
+    error_log("Stack trace: " . $e->getTraceAsString());
+    http_response_code(500);
+    echo json_encode(['error' => 'Fatal error: ' . $e->getMessage()]);
 }
 
 /**
@@ -143,27 +166,51 @@ function create_recipient() {
 function process_payment() {
     global $conn;
     $data = json_input();
+
+    // Log the incoming request for debugging
+    error_log("Paystack process_payment called with data: " . json_encode($data));
+
     validate_required_fields($data, ['payment_id']);
     
     $payment_id = (int)$data['payment_id'];
     
     // Get payment and instrumentalist details
-    $stmt = $conn->prepare("
-        SELECT ip.*, i.full_name, i.momo_provider, i.momo_number, i.momo_name, 
+    $query = "
+        SELECT ip.*, i.full_name, i.momo_provider, i.momo_number, i.momo_name,
                i.paystack_recipient_code, s.service_date, s.service_type
         FROM instrumentalist_payments ip
         JOIN instrumentalists i ON ip.instrumentalist_id = i.id
         JOIN services s ON ip.service_id = s.id
         WHERE ip.id = ? AND ip.payment_status = 'Approved'
-    ");
+    ";
+
+    error_log("Executing payment query for ID: $payment_id");
+    error_log("Query: " . str_replace('?', $payment_id, $query));
+
+    $stmt = $conn->prepare($query);
+    if (!$stmt) {
+        error_log("Failed to prepare statement: " . $conn->error);
+        respond_error('Database prepare error: ' . $conn->error);
+        return;
+    }
+
     $stmt->bind_param('i', $payment_id);
-    $stmt->execute();
+    if (!$stmt->execute()) {
+        error_log("Failed to execute statement: " . $stmt->error);
+        respond_error('Database execute error: ' . $stmt->error);
+        return;
+    }
+
     $payment = $stmt->get_result()->fetch_assoc();
+    error_log("Payment query result: " . json_encode($payment));
     
     if (!$payment) {
+        error_log("Payment not found - ID: $payment_id");
         respond_error('Payment not found or not approved');
         return;
     }
+
+    error_log("Payment found: " . json_encode($payment));
     
     // Check if recipient exists, create if not
     if (!$payment['paystack_recipient_code']) {

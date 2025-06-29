@@ -231,11 +231,118 @@ body {
 
 /* Member Cards */
 .member-card {
+    transition: all 0.3s ease-in-out;
+    border: 1px solid #e9ecef;
+    border-radius: 12px;
+    overflow: hidden;
     border-left: 4px solid var(--primary-color);
+}
+
+.member-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+    border-color: #007bff;
 }
 
 .member-card.has-fingerprint {
     border-left-color: var(--success-color);
+}
+
+.avatar-circle {
+    width: 45px;
+    height: 45px;
+    background: linear-gradient(135deg, #007bff, #0056b3);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 1.2rem;
+    flex-shrink: 0;
+}
+
+.member-details .detail-item {
+    display: flex;
+    align-items: center;
+    font-size: 0.9rem;
+}
+
+.member-details .detail-text {
+    color: #6c757d;
+    font-weight: 500;
+}
+
+.member-card .dropdown-toggle::after {
+    display: none;
+}
+
+.member-card .btn-light {
+    background-color: #f8f9fa;
+    border: 1px solid #e9ecef;
+    transition: all 0.2s ease;
+}
+
+.member-card .btn-light:hover {
+    background-color: #e9ecef;
+    transform: scale(1.1);
+}
+
+.badge.bg-success-subtle {
+    background-color: #d1e7dd !important;
+    border: 1px solid #badbcc;
+    font-weight: 500;
+}
+
+/* Enhanced Success Messages */
+.alert-success.border-success {
+    border-width: 3px !important;
+    background: linear-gradient(135deg, #d4edda, #c3e6cb) !important;
+    animation: successPulse 0.6s ease-in-out;
+}
+
+@keyframes successPulse {
+    0% {
+        transform: scale(0.9);
+        opacity: 0;
+    }
+    50% {
+        transform: scale(1.05);
+    }
+    100% {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+/* Toast message improvements */
+.alert.position-fixed {
+    border-radius: 12px;
+    box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+    backdrop-filter: blur(10px);
+}
+
+.alert-success {
+    color: #0f5132 !important;
+    background-color: #d1e7dd !important;
+    border-color: #badbcc !important;
+}
+
+.alert-error {
+    color: #842029 !important;
+    background-color: #f8d7da !important;
+    border-color: #f5c2c7 !important;
+}
+
+.alert-warning {
+    color: #664d03 !important;
+    background-color: #fff3cd !important;
+    border-color: #ffecb5 !important;
+}
+
+.alert-info {
+    color: #055160 !important;
+    background-color: #cff4fc !important;
+    border-color: #b6effb !important;
 }
 
 /* Responsive Design */
