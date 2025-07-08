@@ -1018,6 +1018,34 @@ class ChurchApp {
 
     async loadInstrumentalistsSection(container) {
         container.innerHTML = `
+            <style>
+                .instrumentalist-card {
+                    transition: transform 0.2s ease, box-shadow 0.2s ease;
+                }
+                .instrumentalist-card:hover {
+                    transform: translateY(-2px);
+                    box-shadow: 0 4px 12px rgba(0,0,0,0.15) !important;
+                }
+                .instrumentalist-card .dropdown {
+                    position: static !important;
+                }
+                .instrumentalist-card .dropdown-menu {
+                    position: absolute !important;
+                    z-index: 9999 !important;
+                    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+                    border: none;
+                    border-radius: 8px;
+                }
+                .instrumentalist-card .dropdown-item {
+                    border-radius: 4px;
+                    margin: 2px 4px;
+                }
+                .instrumentalist-card .dropdown-item:hover {
+                    background-color: #f8f9fa;
+                    transform: translateX(2px);
+                    transition: all 0.2s ease;
+                }
+            </style>
             <div class="col-12">
                 <div class="d-flex justify-content-between align-items-center mb-4">
                     <h2><i class="bi bi-music-note-beamed me-2"></i>Instrumentalists</h2>
@@ -1026,12 +1054,12 @@ class ChurchApp {
                     </button>
                 </div>
 
-                <div class="card">
-                    <div class="card-header">
-                        <h5 class="mb-0">All Instrumentalists</h5>
-                    </div>
-                    <div class="card-body">
-                        <div id="instrumentalists-list">Loading instrumentalists...</div>
+                <div id="instrumentalists-list">
+                    <div class="text-center py-5">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                        <p class="text-muted mt-2">Loading instrumentalists...</p>
                     </div>
                 </div>
             </div>
@@ -1072,48 +1100,68 @@ class ChurchApp {
             return;
         }
 
-        const instrumentalistsHtml = this.instrumentalists.map(instrumentalist => `
-            <div class="col-md-6 col-lg-4 mb-3">
-                <div class="card">
-                    <div class="card-body">
+        const instrumentalistsHtml = this.instrumentalists.map((instrumentalist, index) => `
+            <div class="col-md-6 col-lg-4 mb-4">
+                <div class="card instrumentalist-card h-100 shadow-sm border-0" style="position: relative; z-index: ${1000 - index};">
+                    <div class="card-body d-flex flex-column">
                         <div class="d-flex justify-content-between align-items-start mb-2">
-                            <h6 class="card-title mb-0">${instrumentalist.full_name}</h6>
-                            <div class="dropdown">
-                                <button class="btn btn-sm btn-outline-secondary" data-bs-toggle="dropdown">
+                            <h6 class="card-title mb-0 fw-bold text-primary">${instrumentalist.full_name}</h6>
+                            <div class="dropdown" style="position: static;">
+                                <button class="btn btn-sm btn-light border-0 shadow-sm" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false" style="z-index: ${2000 - index};">
                                     <i class="bi bi-three-dots-vertical"></i>
                                 </button>
-                                <ul class="dropdown-menu">
-                                    <li><a class="dropdown-item" href="#" onclick="app.editInstrumentalist(${instrumentalist.id})">
-                                        <i class="bi bi-pencil me-2"></i>Edit
+                                <ul class="dropdown-menu dropdown-menu-end shadow border-0" style="z-index: ${3000 - index}; min-width: 150px;">
+                                    <li><a class="dropdown-item py-2 edit-instrumentalist-btn" href="#" data-id="${instrumentalist.id}">
+                                        <i class="bi bi-pencil me-2 text-primary"></i>Edit
                                     </a></li>
-                                    <li><hr class="dropdown-divider"></li>
-                                    <li><a class="dropdown-item text-danger" href="#" onclick="app.deleteInstrumentalist(${instrumentalist.id})">
+                                    <li><hr class="dropdown-divider my-1"></li>
+                                    <li><a class="dropdown-item py-2 text-danger delete-instrumentalist-btn" href="#" data-id="${instrumentalist.id}">
                                         <i class="bi bi-trash me-2"></i>Delete
                                     </a></li>
                                 </ul>
                             </div>
                         </div>
-                        <p class="card-text text-muted small mb-1">
-                            <i class="bi bi-music-note me-1"></i>${instrumentalist.instrument || 'No instrument specified'}
-                        </p>
-                        ${instrumentalist.phone ? `<p class="card-text text-muted small mb-1">
-                            <i class="bi bi-telephone me-1"></i>${instrumentalist.phone}
-                        </p>` : ''}
-                        ${instrumentalist.email ? `<p class="card-text text-muted small mb-1">
-                            <i class="bi bi-envelope me-1"></i>${instrumentalist.email}
-                        </p>` : ''}
-                        ${instrumentalist.skill_level ? `<p class="card-text text-muted small mb-1">
-                            <i class="bi bi-star me-1"></i>Skill: ${instrumentalist.skill_level}
-                        </p>` : ''}
-                        ${instrumentalist.hourly_rate ? `<p class="card-text text-muted small mb-1">
-                            <i class="bi bi-cash me-1"></i>Hourly: $${parseFloat(instrumentalist.hourly_rate).toFixed(2)}
-                        </p>` : ''}
-                        ${instrumentalist.per_service_rate ? `<p class="card-text text-muted small mb-1">
-                            <i class="bi bi-cash-coin me-1"></i>Per Service: $${parseFloat(instrumentalist.per_service_rate).toFixed(2)}
-                        </p>` : ''}
-                        <div class="mt-2">
-                            <span class="badge bg-success">Active</span>
-                            ${instrumentalist.created_at ? `<small class="text-muted ms-2">Added ${new Date(instrumentalist.created_at).toLocaleDateString()}</small>` : ''}
+                        <div class="flex-grow-1">
+                            <p class="card-text text-muted small mb-2 d-flex align-items-center">
+                                <i class="bi bi-music-note me-2 text-info"></i>
+                                <span class="fw-medium">${instrumentalist.instrument || 'No instrument specified'}</span>
+                            </p>
+                            ${instrumentalist.phone ? `<p class="card-text text-muted small mb-2 d-flex align-items-center">
+                                <i class="bi bi-telephone me-2 text-success"></i>
+                                <span>${instrumentalist.phone}</span>
+                            </p>` : ''}
+                            ${instrumentalist.email ? `<p class="card-text text-muted small mb-2 d-flex align-items-center">
+                                <i class="bi bi-envelope me-2 text-warning"></i>
+                                <span>${instrumentalist.email}</span>
+                            </p>` : ''}
+                            ${instrumentalist.skill_level ? `<p class="card-text text-muted small mb-2 d-flex align-items-center">
+                                <i class="bi bi-star me-2 text-primary"></i>
+                                <span>Skill: <span class="fw-medium">${instrumentalist.skill_level}</span></span>
+                            </p>` : ''}
+
+                            <div class="row g-2 mb-2">
+                                ${instrumentalist.hourly_rate ? `<div class="col-6">
+                                    <div class="bg-light rounded p-2 text-center">
+                                        <small class="text-muted d-block">Hourly</small>
+                                        <span class="fw-bold text-success">$${parseFloat(instrumentalist.hourly_rate).toFixed(2)}</span>
+                                    </div>
+                                </div>` : ''}
+                                ${instrumentalist.per_service_rate ? `<div class="col-6">
+                                    <div class="bg-light rounded p-2 text-center">
+                                        <small class="text-muted d-block">Per Service</small>
+                                        <span class="fw-bold text-info">$${parseFloat(instrumentalist.per_service_rate).toFixed(2)}</span>
+                                    </div>
+                                </div>` : ''}
+                            </div>
+                        </div>
+
+                        <div class="mt-auto pt-2 border-top">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <span class="badge bg-success-subtle text-success border border-success-subtle">
+                                    <i class="bi bi-check-circle me-1"></i>Active
+                                </span>
+                                ${instrumentalist.created_at ? `<small class="text-muted">Added ${new Date(instrumentalist.created_at).toLocaleDateString()}</small>` : ''}
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -1121,6 +1169,42 @@ class ChurchApp {
         `).join('');
 
         container.innerHTML = `<div class="row">${instrumentalistsHtml}</div>`;
+
+        // Add event listeners for edit and delete buttons
+        this.setupInstrumentalistEventListeners();
+    }
+
+    setupInstrumentalistEventListeners() {
+        // Edit instrumentalist buttons
+        const editButtons = document.querySelectorAll('.edit-instrumentalist-btn');
+        console.log('Found edit buttons:', editButtons.length);
+
+        editButtons.forEach((btn, index) => {
+            console.log(`Setting up edit button ${index}:`, btn);
+            btn.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                const id = parseInt(e.currentTarget.getAttribute('data-id'));
+                console.log('Edit button clicked for ID:', id);
+                alert('Edit button clicked for ID: ' + id);
+                this.editInstrumentalist(id);
+            });
+        });
+
+        // Delete instrumentalist buttons
+        const deleteButtons = document.querySelectorAll('.delete-instrumentalist-btn');
+        console.log('Found delete buttons:', deleteButtons.length);
+
+        deleteButtons.forEach((btn, index) => {
+            console.log(`Setting up delete button ${index}:`, btn);
+            btn.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                const id = parseInt(e.currentTarget.getAttribute('data-id'));
+                console.log('Delete button clicked for ID:', id);
+                this.deleteInstrumentalist(id);
+            });
+        });
     }
 
     async loadPaymentsSection(container) {
@@ -2474,15 +2558,17 @@ class ChurchApp {
     }
 
     showMessage(message, type = 'info') {
-        // Clear ALL existing messages of the same type to prevent duplicates
-        const existingToasts = document.querySelectorAll(`.alert-${type}.position-fixed`);
-        existingToasts.forEach(toast => toast.remove());
+        // Clear ALL existing messages to prevent duplicates and confusion
+        const allToasts = document.querySelectorAll('.alert.position-fixed');
+        allToasts.forEach(toast => toast.remove());
 
-        // For success messages, also clear any error messages to avoid confusion
-        if (type === 'success') {
-            const errorToasts = document.querySelectorAll(`.alert-error.position-fixed, .alert-danger.position-fixed`);
-            errorToasts.forEach(toast => toast.remove());
-        }
+        // Small delay to ensure DOM cleanup
+        setTimeout(() => {
+            this.createAndShowMessage(message, type);
+        }, 50);
+    }
+
+    createAndShowMessage(message, type) {
 
         // Create and show toast message
         const toast = document.createElement('div');
@@ -2492,12 +2578,8 @@ class ChurchApp {
         const extraClasses = isSuccess ? ' border-success shadow-lg' : '';
         const fontSize = isSuccess ? 'font-size: 1.1rem; font-weight: 600;' : '';
 
-        // Stack messages vertically
-        const existingMessages = document.querySelectorAll('.alert.position-fixed');
-        const topOffset = 100 + (existingMessages.length * 80);
-
         toast.className = `alert alert-${type} alert-dismissible fade show position-fixed${extraClasses}`;
-        toast.style.cssText = `top: ${topOffset}px; right: 20px; z-index: 9999; min-width: 350px; ${fontSize}`;
+        toast.style.cssText = `top: 100px; right: 20px; z-index: 9999; min-width: 350px; ${fontSize}`;
 
         // Add icon based on type
         let icon = '';
@@ -3777,18 +3859,28 @@ class ChurchApp {
             const result = await response.json();
 
             if (result.success) {
-                this.showMessage(`Attendance recorded for ${selectedMembers.length} members`, 'success');
-                bootstrap.Modal.getInstance(document.querySelector('.modal')).hide();
+                // Close modal first
+                const modal = document.querySelector('.modal');
+                if (modal) {
+                    const modalInstance = bootstrap.Modal.getInstance(modal);
+                    if (modalInstance) {
+                        modalInstance.hide();
+                    }
+                }
 
                 // Update attendance data dynamically
                 if (this.currentSection === 'attendance') {
-                    this.loadAttendanceData();
+                    await this.loadAttendanceData();
                 }
 
                 // Update dashboard stats if we're on dashboard
                 if (this.currentSection === 'dashboard') {
+                    await this.loadTodayAttendance();
                     this.updateDashboardStats();
                 }
+
+                // Show success message after updates are complete
+                this.showMessage(`Attendance recorded for ${selectedMembers.length} members`, 'success');
             } else {
                 this.showMessage(result.error || 'Failed to record attendance', 'error');
             }
@@ -4123,22 +4215,257 @@ class ChurchApp {
             const result = await response.json();
 
             if (result.success) {
-                this.showMessage('Instrumentalist added successfully', 'success');
-                bootstrap.Modal.getInstance(document.querySelector('.modal')).hide();
+                // Close modal first
+                const modal = document.querySelector('.modal');
+                if (modal) {
+                    const modalInstance = bootstrap.Modal.getInstance(modal);
+                    if (modalInstance) {
+                        modalInstance.hide();
+                    }
+                }
 
                 // Update instrumentalists data dynamically
                 await this.loadInstrumentalists();
+
+                // Update instrumentalists section if we're there
+                if (this.currentSection === 'instrumentalists') {
+                    await this.renderInstrumentalistsList();
+                }
 
                 // Update payment section if we're there
                 if (this.currentSection === 'payments') {
                     await this.loadSimplePaymentData();
                 }
+
+                // Also update dashboard if we're there
+                if (this.currentSection === 'dashboard') {
+                    this.updateDashboardStats();
+                }
+
+                // Show success message after updates are complete
+                this.showMessage('Instrumentalist added successfully', 'success');
             } else {
                 this.showMessage(result.error || 'Failed to add instrumentalist', 'error');
             }
 
         } catch (error) {
             this.showMessage('Error adding instrumentalist', 'error');
+        }
+    }
+
+    async editInstrumentalist(id) {
+        try {
+            // Find the instrumentalist data
+            const instrumentalist = this.instrumentalists.find(i => i.id == id);
+
+            if (!instrumentalist) {
+                this.showMessage('Instrumentalist not found', 'error');
+                return;
+            }
+
+            // Show edit modal
+            this.showEditInstrumentalistModal(instrumentalist);
+        } catch (error) {
+            console.error('Error editing instrumentalist:', error);
+            this.showMessage('Error loading instrumentalist data', 'error');
+        }
+    }
+
+    async deleteInstrumentalist(id) {
+        try {
+            // Find the instrumentalist data
+            const instrumentalist = this.instrumentalists.find(i => i.id == id);
+            if (!instrumentalist) {
+                this.showMessage('Instrumentalist not found', 'error');
+                return;
+            }
+
+            // Show confirmation dialog
+            const confirmed = confirm(`Are you sure you want to delete "${instrumentalist.full_name}"?\n\nThis action cannot be undone.`);
+            if (!confirmed) return;
+
+            const response = await fetch(`api/instrumentalists.php?id=${id}`, {
+                method: 'DELETE'
+            });
+
+            const result = await response.json();
+
+            if (result.success) {
+                this.showMessage(`Instrumentalist "${instrumentalist.full_name}" deleted successfully`, 'success');
+
+                // Update instrumentalists data and UI dynamically
+                await this.loadInstrumentalists();
+                if (this.currentSection === 'instrumentalists') {
+                    await this.renderInstrumentalistsList();
+                }
+
+                // Also update dashboard stats if we're on dashboard
+                if (this.currentSection === 'dashboard') {
+                    this.updateDashboardStats();
+                }
+            } else {
+                this.showMessage(result.error || 'Failed to delete instrumentalist', 'error');
+            }
+        } catch (error) {
+            console.error('Error deleting instrumentalist:', error);
+            this.showMessage('Error deleting instrumentalist', 'error');
+        }
+    }
+
+    showEditInstrumentalistModal(instrumentalist) {
+        const modal = document.createElement('div');
+        modal.className = 'modal fade';
+        modal.innerHTML = `
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Edit Instrumentalist</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <form id="edit-instrumentalist-form">
+                            <input type="hidden" id="edit-instrumentalist-id" value="${instrumentalist.id}">
+
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Full Name *</label>
+                                    <input type="text" class="form-control" id="edit-instrumentalist-name" value="${instrumentalist.full_name || ''}" required>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Instrument *</label>
+                                    <input type="text" class="form-control" id="edit-instrumentalist-instrument" value="${instrumentalist.instrument || ''}" required>
+                                </div>
+                            </div>
+
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Phone</label>
+                                    <input type="tel" class="form-control" id="edit-instrumentalist-phone" value="${instrumentalist.phone || ''}">
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Email</label>
+                                    <input type="email" class="form-control" id="edit-instrumentalist-email" value="${instrumentalist.email || ''}">
+                                </div>
+                            </div>
+
+                            <div class="row">
+                                <div class="col-md-4 mb-3">
+                                    <label class="form-label">Skill Level</label>
+                                    <select class="form-select" id="edit-instrumentalist-skill">
+                                        <option value="Beginner" ${instrumentalist.skill_level === 'Beginner' ? 'selected' : ''}>Beginner</option>
+                                        <option value="Intermediate" ${instrumentalist.skill_level === 'Intermediate' ? 'selected' : ''}>Intermediate</option>
+                                        <option value="Advanced" ${instrumentalist.skill_level === 'Advanced' ? 'selected' : ''}>Advanced</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-4 mb-3">
+                                    <label class="form-label">Hourly Rate ($)</label>
+                                    <input type="number" step="0.01" class="form-control" id="edit-instrumentalist-hourly" value="${instrumentalist.hourly_rate || ''}">
+                                </div>
+                                <div class="col-md-4 mb-3">
+                                    <label class="form-label">Per Service Rate ($)</label>
+                                    <input type="number" step="0.01" class="form-control" id="edit-instrumentalist-service" value="${instrumentalist.per_service_rate || ''}">
+                                </div>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label">Notes</label>
+                                <textarea class="form-control" id="edit-instrumentalist-notes" rows="3">${instrumentalist.notes || ''}</textarea>
+                            </div>
+                        </form>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="button" class="btn btn-primary" onclick="app.submitEditInstrumentalist()">Update Instrumentalist</button>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        document.body.appendChild(modal);
+        const modalInstance = new bootstrap.Modal(modal);
+        modalInstance.show();
+
+        modal.addEventListener('hidden.bs.modal', () => {
+            document.body.removeChild(modal);
+        });
+    }
+
+    async submitEditInstrumentalist() {
+        try {
+            const id = document.getElementById('edit-instrumentalist-id').value;
+            const fullName = document.getElementById('edit-instrumentalist-name').value.trim();
+            const instrument = document.getElementById('edit-instrumentalist-instrument').value.trim();
+            const phone = document.getElementById('edit-instrumentalist-phone').value.trim();
+            const email = document.getElementById('edit-instrumentalist-email').value.trim();
+            const skillLevel = document.getElementById('edit-instrumentalist-skill').value;
+            const hourlyRate = document.getElementById('edit-instrumentalist-hourly').value;
+            const perServiceRate = document.getElementById('edit-instrumentalist-service').value;
+            const notes = document.getElementById('edit-instrumentalist-notes').value.trim();
+
+            if (!fullName) {
+                this.showMessage('Please enter the instrumentalist\'s full name', 'error');
+                return;
+            }
+
+            if (!instrument) {
+                this.showMessage('Please enter the instrument', 'error');
+                return;
+            }
+
+            const instrumentalistData = {
+                id: parseInt(id),
+                full_name: fullName,
+                instrument: instrument,
+                phone: phone,
+                email: email,
+                skill_level: skillLevel,
+                hourly_rate: hourlyRate ? parseFloat(hourlyRate) : null,
+                per_service_rate: perServiceRate ? parseFloat(perServiceRate) : null,
+                notes: notes
+            };
+
+            const response = await fetch('api/instrumentalists.php', {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(instrumentalistData)
+            });
+
+            if (!response.ok) {
+                this.showMessage(`API Error: ${response.status} ${response.statusText}`, 'error');
+                return;
+            }
+
+            const result = await response.json();
+
+            if (result.success) {
+                // Close modal first
+                const modal = document.querySelector('.modal');
+                if (modal) {
+                    const modalInstance = bootstrap.Modal.getInstance(modal);
+                    if (modalInstance) {
+                        modalInstance.hide();
+                    }
+                }
+
+                // Update instrumentalists data and UI dynamically
+                await this.loadInstrumentalists();
+                if (this.currentSection === 'instrumentalists') {
+                    await this.renderInstrumentalistsList();
+                }
+
+                // Also update dashboard if we're there
+                if (this.currentSection === 'dashboard') {
+                    this.updateDashboardStats();
+                }
+
+                // Show success message after updates are complete
+                this.showMessage('Instrumentalist updated successfully', 'success');
+            } else {
+                this.showMessage(result.error || 'Failed to update instrumentalist', 'error');
+            }
+        } catch (error) {
+            console.error('Error updating instrumentalist:', error);
+            this.showMessage('Error updating instrumentalist', 'error');
         }
     }
 }

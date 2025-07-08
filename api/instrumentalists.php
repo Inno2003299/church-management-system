@@ -19,7 +19,11 @@ switch ($method) {
     case 'PUT':
         update_instrumentalist();
         break;
-    
+
+    case 'DELETE':
+        delete_instrumentalist();
+        break;
+
     default:
         respond_error('Method not allowed', 405);
 }
@@ -269,20 +273,40 @@ function save_instrumentalist() {
 function update_instrumentalist() {
     global $conn;
     $data = json_input();
-    validate_required_fields($data, ['id']);
-    
+
+    // Custom validation for ID (don't use validate_required_fields for ID)
+    if (!isset($data['id']) || $data['id'] === null || $data['id'] === '') {
+        respond_error("Missing required field: id");
+        return;
+    }
+
     $id = (int)$data['id'];
+
+    // Check what columns actually exist in the table
+    $columns_result = $conn->query("SHOW COLUMNS FROM instrumentalists");
+    $existing_columns = [];
+    while ($row = $columns_result->fetch_assoc()) {
+        $existing_columns[] = $row['Field'];
+    }
+
     $fields = [];
     $values = [];
     $types = '';
-    
+
     $allowed_fields = ['full_name', 'phone', 'email', 'instrument', 'skill_level', 'hourly_rate', 'per_service_rate', 'notes', 'is_active'];
-    
+
     foreach ($allowed_fields as $field) {
-        if (isset($data[$field])) {
+        // Only process fields that exist in the table AND are provided in the data
+        if (in_array($field, $existing_columns) && array_key_exists($field, $data)) {
             $fields[] = "$field = ?";
             if (in_array($field, ['hourly_rate', 'per_service_rate'])) {
-                $values[] = (float)$data[$field];
+                // Handle empty rate fields as NULL
+                $value = $data[$field];
+                if ($value === '' || $value === null) {
+                    $values[] = null;
+                } else {
+                    $values[] = (float)$value;
+                }
                 $types .= 'd';
             } elseif ($field === 'is_active') {
                 $values[] = (bool)$data[$field];
@@ -293,24 +317,76 @@ function update_instrumentalist() {
             }
         }
     }
-    
+
     if (empty($fields)) {
         respond_error('No fields to update');
+        return;
     }
-    
+
     $values[] = $id;
     $types .= 'i';
-    
+
     $sql = "UPDATE instrumentalists SET " . implode(', ', $fields) . " WHERE id = ?";
+
     $stmt = $conn->prepare($sql);
+    if (!$stmt) {
+        respond_error('Failed to prepare statement: ' . $conn->error);
+        return;
+    }
+
     $stmt->bind_param($types, ...$values);
-    
+
     if ($stmt->execute()) {
-        respond_json(['success' => true, 'message' => 'Instrumentalist updated successfully']);
+        if ($stmt->affected_rows > 0) {
+            respond_json(['success' => true, 'message' => 'Instrumentalist updated successfully']);
+        } else {
+            respond_error('No instrumentalist found with that ID or no changes made');
+        }
     } else {
-        respond_error('Failed to update instrumentalist');
+        respond_error('Failed to update instrumentalist: ' . $stmt->error);
     }
     
     $stmt->close();
+}
+
+function delete_instrumentalist() {
+    global $conn;
+
+    // Get ID from query parameter for DELETE requests
+    if (!isset($_GET['id'])) {
+        respond_error('Instrumentalist ID is required');
+        return;
+    }
+
+    $id = (int)$_GET['id'];
+
+    // Check if instrumentalist exists
+    $check_stmt = $conn->prepare("SELECT full_name FROM instrumentalists WHERE id = ?");
+    $check_stmt->bind_param('i', $id);
+    $check_stmt->execute();
+    $result = $check_stmt->get_result();
+
+    if ($result->num_rows === 0) {
+        respond_error('Instrumentalist not found', 404);
+        return;
+    }
+
+    $instrumentalist = $result->fetch_assoc();
+    $check_stmt->close();
+
+    // Delete the instrumentalist
+    $delete_stmt = $conn->prepare("DELETE FROM instrumentalists WHERE id = ?");
+    $delete_stmt->bind_param('i', $id);
+
+    if ($delete_stmt->execute()) {
+        respond_json([
+            'success' => true,
+            'message' => "Instrumentalist '{$instrumentalist['full_name']}' deleted successfully"
+        ]);
+    } else {
+        respond_error('Failed to delete instrumentalist: ' . $delete_stmt->error);
+    }
+
+    $delete_stmt->close();
 }
 ?>
